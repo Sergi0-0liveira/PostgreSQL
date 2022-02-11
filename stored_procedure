@@ -1,0 +1,21 @@
+CREATE TABLE keyvalue ( 
+  id SERIAL,
+  key VARCHAR(128) UNIQUE,
+  value VARCHAR(128) UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(id)
+);
+
+create or replace function trigger_set_time()
+returns trigger as $$
+	begin
+		NEW.updated_at = Now();
+		RETURN NEW;
+	end;
+	$$ language plpgsql;
+
+create trigger set_time
+	BEFORE UPDATE ON keyvalue
+	FOR EACH ROW
+	EXECUTE PROCEDURE trigger_set_time();
