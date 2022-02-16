@@ -1,0 +1,35 @@
+CREATE TABLE album (
+  id SERIAL,
+  title VARCHAR(128) UNIQUE,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE track (
+    id SERIAL,
+    title VARCHAR(128),
+    len INTEGER, rating INTEGER, count INTEGER,
+    album_id INTEGER REFERENCES album(id) ON DELETE CASCADE,
+    UNIQUE(title, album_id),
+    PRIMARY KEY(id)
+);
+
+DROP TABLE IF EXISTS track_raw;
+CREATE TABLE track_raw
+ (title TEXT, artist TEXT, album TEXT, album_id INTEGER,
+  count INTEGER, rating INTEGER, len INTEGER);
+  
+ ## this was to set up the tables
+ ## the chalenge was to load the data from a CSV file.
+ 
+\copy track_raw(title,artist,album,count,rating,len) FROM 'library.csv' WITH DELIMITER ',' CSV;
+
+## the next step was load the info onto the album table (where we had our primary key) and ensure that we didn't copy duplicate values
+
+	INSERT INTO  album(title) SELECT DISTINCT album FROM track_raw
+
+## NEXT step was to update the track_raw table with our primary key (album.id)
+
+UPDATE track_raw SET album_id = (SELECT album.id FROM album WHERE album.title = track_raw.album);
+
+## the Final step was to copy the information to the Track table;
+insert into track(title, len, rating, count, album_id) select title, album_id, count, rating, len from track_raw;
