@@ -33,3 +33,85 @@ UPDATE track_raw SET album_id = (SELECT album.id FROM album WHERE album.title = 
 
 ## the Final step was to copy the information to the Track table;
 insert into track(title, len, rating, count, album_id) select title, album_id, count, rating, len from track_raw;
+
+
+Stil on Many to Many relations. I did another Exercise where the aim was to building a table and import there the a csv file, Afterwards:
+# normalize the data
+# building the look up table where we will then create the primary keys
+# the build a main table with out the redundant columns
+
+# STEP 1 - CREATE RAW table and LOOK UP tables, Load CSV file, copy the data for raw table and lookup tables
+CREATE TABLE unesco_raw
+ (name TEXT, description TEXT, justification TEXT, year INTEGER,
+    longitude FLOAT, latitude FLOAT, area_hectares FLOAT,
+    category TEXT, category_id INTEGER, state TEXT, state_id INTEGER,
+    region TEXT, region_id INTEGER, iso TEXT, iso_id INTEGER);
+
+CREATE TABLE category (
+  id SERIAL,
+  name VARCHAR(128) UNIQUE,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE iso (
+  id SERIAL,
+  name VARCHAR(128) UNIQUE,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE state (
+  id SERIAL,
+  name text,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE region (
+  id SERIAL,
+  name text,
+  PRIMARY KEY(id)
+);
+
+\copy unesco_raw(name,description,justification,year,longitude,latitude,area_hectares,category,state,region,iso) FROM 'whc-sites-2018-small.csv' WITH DELIMITER ',' CSV HEADER;
+## Adding HEADER causes the CSV loader to skip the first line in the CSV file
+
+insert into region(name) select distinct region from unesco_raw;
+insert into iso(name) select distinct iso from unesco_raw;
+insert into category(name) select distinct category from unesco_raw;
+insert into state(name) select distinct state from unesco_raw;
+
+# after feeding the lookup table, it necessary to feed the raw with the primary keys.
+
+UPDATE unesco_raw SET iso_id = (SELECT iso.id FROM iso WHERE iso.name = unesco_raw.name);
+UPDATE unesco_raw SET region_id = (SELECT region.id FROM region WHERE region.name = unesco_raw.name);
+UPDATE unesco_raw SET category_id = (SELECT iso.id FROM iso WHERE iso.name = unesco_raw.name);
+UPDATE unesco_raw SET state_id = (SELECT state.id FROM state WHERE state.name = unesco_raw.name);
+
+# after feeding this data to the unesco raw table it was necessary to create a new table with the normalized data, dropping the redundant columns and 
+# loading the information from the lookup tables
+
+create table unesco (           
+	name text,
+	description text,
+	justification text,
+	year integer,
+	longitude float,
+	latitude float,
+	area_hectares float,
+	iso_id integer, category_id integer, region_id integer, state_id integer);
+	
+insert into unesco (name, description, justification, year, longitude, latitude, area_hectares, iso_id, category_id, region_id, state_id)
+	select name, description, justification, year, longitude, latitude, area_hectares, iso_id, category_id, region_id, state_id
+	from unesco_raw;
+	
+## last step was to create a new table with all the relevant data.
+
+SELECT unesco.name, year, category.name, state.name, region.name, iso.name
+	FROM unesco                                                                                                                
+	JOIN category ON unesco.category_id = category.id
+	JOIN state ON unesco.state_id = state.id
+	JOIN region ON unesco.region_id = region.id
+	JOIN iso ON unesco.iso_id = iso.id
+	ORDER BY state.name, unesco.name
+	LIMIT 3;
+
+# limited the result to 3 for viewing propuses.
