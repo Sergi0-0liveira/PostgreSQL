@@ -1,0 +1,59 @@
+### The first challenge was to create a invert index
+
+###STEP 1 - Create Tables and insert the data into it
+
+CREATE TABLE docs01 (id SERIAL, doc TEXT, PRIMARY KEY(id));
+
+CREATE TABLE invert01 (
+  keyword TEXT,
+  doc_id INTEGER REFERENCES docs01(id) ON DELETE CASCADE
+);
+
+INSERT INTO docs01 (doc) VALUES
+    ('mistake in the order of the statements or perhaps a mistake in how'),
+    ('the statements relate to one another A good example of a logic'),
+    ('error might be take a drink from your water bottle put it in your'),
+    ('backpack walk to the library and then put the top back on the'),
+    ('syntactically perfect and in the right order but there is simply a'),
+    ('mistake in the program The program is perfectly correct but it does'),
+    ('not do what you intended for it to do A simple'),
+    ('example would be if you were giving a person directions to a'),
+    ('restaurant and said when you reach the intersection with the'),
+    ('gas station turn left and go one mile and the restaurant is a red');
+
+###STEP 2 - INSERTING INTO INVERT01 THE EVERY SINGLE WORD MAPPING IT TO DOCS01
+  
+  INSERT INTO invert01(keyword, doc_id) 
+    SELECT DISTINCT unnest(string_to_array(lower(D.doc), ' ')), id
+    FROM doc01 AS D
+    ORDER BY id;
+ 
+### CREATING A INVERTED index with STOP Words
+###STEP 1 - Create Tables and insert the data into it
+  
+CREATE TABLE docs02 (id SERIAL, doc TEXT, PRIMARY KEY(id));
+
+CREATE TABLE invert02 (
+  keyword TEXT,
+  doc_id INTEGER REFERENCES docs02(id) ON DELETE CASCADE
+);
+    
+INSERT INTO docs01 (doc) VALUES
+    ('mistake in the order of the statements or perhaps a mistake in how'),
+    ('the statements relate to one another A good example of a logic'),
+    ('error might be take a drink from your water bottle put it in your'),
+    ('backpack walk to the library and then put the top back on the'),
+    ('syntactically perfect and in the right order but there is simply a'),
+    ('mistake in the program The program is perfectly correct but it does'),
+    ('not do what you intended for it to do A simple'),
+    ('example would be if you were giving a person directions to a'),
+    ('restaurant and said when you reach the intersection with the'),
+    ('gas station turn left and go one mile and the restaurant is a red');
+    
+### STEP 2 - Insert the info into invert02 but not considering STOP_WORD
+
+INSERTO INTO invert02(keyword, doc_id)                                                                                                                                                          
+  SELECT DISTINCT s.keyword AS keyword, id
+  FROM docs02 AS D, unnest(string_to_array(lower(D.doc),' ')) s(keyword) 
+  WHERE keyword NOT IN (select word from stop_words)
+  ORDER BY id;
