@@ -1,0 +1,18 @@
+CREATE TABLE docs03 (id SERIAL, doc TEXT, PRIMARY KEY(id));
+
+CREATE INDEX fulltext03 ON docs03 USING gin(to_tsvector('english', doc));
+
+INSERT INTO docs03 (doc) VALUES
+('mistake in the order of the statements or perhaps a mistake in how'),
+('the statements relate to one another A good example of a logic'),
+('error might be take a drink from your water bottle put it in your'),
+('backpack walk to the library and then put the top back on the'),
+('syntactically perfect and in the right order but there is simply a'),
+('mistake in the program The program is perfectly correct but it does'),
+('not do what you intended for it to do A simple'),
+('example would be if you were giving a person directions to a'),
+('restaurant and said when you reach the intersection with the'),
+('gas station turn left and go one mile and the restaurant is a red');
+
+Select id, doc FROM docs03 WHERE
+  to_tsquery('english', 'order') @@ to_tsvector('english', doc);
